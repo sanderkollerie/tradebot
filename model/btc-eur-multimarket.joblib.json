@@ -1,0 +1,97 @@
+{
+  "version": "20260726T111453Z",
+  "pair": "XBTEUR",
+  "interval_minutes": 15,
+  "approved_for_live": true,
+  "buy_threshold": 0.725,
+  "sell_threshold": 0.3,
+  "trained_at": "2026-07-26T11:14:53.231971+00:00",
+  "feature_count": 148,
+  "context_markets": [
+    {
+      "name": "XBTEUR_60",
+      "pair": "XBTEUR",
+      "interval": 60
+    },
+    {
+      "name": "XBTEUR_240",
+      "pair": "XBTEUR",
+      "interval": 240
+    },
+    {
+      "name": "XBTUSD_15",
+      "pair": "XBTUSD",
+      "interval": 15
+    },
+    {
+      "name": "XBTUSD_60",
+      "pair": "XBTUSD",
+      "interval": 60
+    },
+    {
+      "name": "XBTUSD_240",
+      "pair": "XBTUSD",
+      "interval": 240
+    },
+    {
+      "name": "ETHEUR_15",
+      "pair": "ETHEUR",
+      "interval": 15
+    },
+    {
+      "name": "ETHEUR_60",
+      "pair": "ETHEUR",
+      "interval": 60
+    },
+    {
+      "name": "ETHEUR_240",
+      "pair": "ETHEUR",
+      "interval": 240
+    },
+    {
+      "name": "ETHUSD_15",
+      "pair": "ETHUSD",
+      "interval": 15
+    },
+    {
+      "name": "ETHUSD_60",
+      "pair": "ETHUSD",
+      "interval": 60
+    },
+    {
+      "name": "ETHUSD_240",
+      "pair": "ETHUSD",
+      "interval": 240
+    }
+  ],
+  "metrics": {
+    "usable_candles": 70151,
+    "positive_class_rate": 0.1269547119784465,
+    "purged_bars_per_boundary": 8,
+    "calibration": {
+      "net_return": 0.12379834527382161,
+      "buy_hold_return": 0.32687328487749645,
+      "max_drawdown": -0.0056710166595901335,
+      "annualized_sharpe": 7.491740919127959,
+      "trade_count": 108,
+      "win_rate": 0.7037037037037037,
+      "profit_factor": 4.547209003029535,
+      "exposure": 0.04651715666851573,
+      "ending_equity": 11237.983452738215
+    },
+    "test": {
+      "net_return": 0.05860684884666689,
+      "buy_hold_return": -0.2620222344680754,
+      "max_drawdown": -0.017235785537883186,
+      "annualized_sharpe": 3.2999423656259776,
+      "trade_count": 121,
+      "win_rate": 0.6446280991735537,
+      "profit_factor": 1.9124654013031144,
+      "exposure": 0.04166126733186471,
+      "ending_equity": 10586.06848846667
+    },
+    "approval_metric_gate": true,
+    "approve_live_requested": true
+  },
+  "sha256": "32e0261b3a46054bb5b8a62a89fe5e22807ac56fb94d80c2b8a66b3ad695c68c"
+}
