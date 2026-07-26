@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Kraken BTC/EUR ML trading bot on AWS Lambda
+
+Parameters:
+  TradingMode:
+    Type: String
+    Default: paper
+    AllowedValues: [paper, live]
+  ModelBucket:
+    Type: String
+  ModelKey:
+    Type: String
+    Default: models/btc-eur-15m.joblib
+  KrakenSecretName:
+    Type: String
+    Default: trading/kraken
+  LiveTradingEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  LiveConfirmation:
+    Type: String
+    Default: ''
+    NoEcho: true
+Resources:
+  StateTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: bot_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: bot_id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: bot_id
+          AttributeType: S
+        - AttributeName: event_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: bot_id
+          KeyType: HASH
+        - AttributeName: event_id
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  TradingFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: python312-v1
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-kraken-trader'
+      PackageType: Image
+      Architectures: [x86_64]
+      Timeout: 90
+      MemorySize: 2048
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          MODE: !Ref TradingMode
+          BOT_ID: BTC-EUR-15M
+          PAIR: XBTEUR
+          INTERVAL_MINUTES: '15'
+          STATE_TABLE: !Ref StateTable
+          EVENTS_TABLE: !Ref EventsTable
+          MODEL_BUCKET: !Ref ModelBucket
+          MODEL_KEY: !Ref ModelKey
+          KRAKEN_SECRET_NAME: !Ref KrakenSecretName
+          STARTING_CASH_EUR: '1000'
+          LIVE_CAPITAL_EUR: '1000'
+          MAX_ORDER_EUR: '250'
+          MIN_CASH_RESERVE_EUR: '25'
+          RISK_PER_TRADE: '0.005'
+          MAX_POSITION_FRACTION: '0.25'
+          STOP_ATR_MULTIPLE: '2.2'
+          MINIMUM_STOP_FRACTION: '0.012'
+          TRAILING_ATR_MULTIPLE: '2.8'
+          STOP_RAISE_MIN_FRACTION: '0.004'
+          MAX_HOLDING_BARS: '192'
+          COOLDOWN_BARS_AFTER_LOSS: '8'
+          MAX_SPREAD_BPS: '35'
+          PAPER_SLIPPAGE_BPS: '8'
+          PAPER_FEE_RATE: '0.0026'
+          MAX_DRAWDOWN_FRACTION: '0.15'
+          MAX_DAILY_LOSS_FRACTION: '0.03'
+          LIVE_TRADING_ENABLED: !Ref LiveTradingEnabled
+          LIVE_CONFIRMATION: !Ref LiveConfirmation
+          REQUIRE_APPROVED_MODEL: 'true'
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StateTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventsTable
+        - S3ReadPolicy:
+            BucketName: !Ref ModelBucket
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Sub arn:${AWS::Partition}:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${KrakenSecretName}*
+      Events:
+        Schedule:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(5 minutes)
+            FlexibleTimeWindow:
+              Mode: 'OFF'
+            RetryPolicy:
+              MaximumRetryAttempts: 1
+              MaximumEventAgeInSeconds: 300
+            DeadLetterConfig:
+              Type: SQS
+
+  TradingFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: TradingFunction
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-kraken-trader'
+      RetentionInDays: 30
+
+  TradingFunctionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Kraken trading Lambda returned an error
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref TradingFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  FunctionName:
+    Value: !Ref TradingFunction
+  StateTableName:
+    Value: !Ref StateTable
+  EventsTableName:
+    Value: !Ref EventsTable
