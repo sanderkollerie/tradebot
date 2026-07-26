@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "trading"
+resolve_s3 = true
+s3_prefix = "trading"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "TradingMode=\"paper\" ModelBucket=\"sander-tradebot-model-123\" ModelKey=\"models/btc-eur-15m.joblib\" KrakenSecretName=\"trading/kraken\" LiveTradingEnabled=\"false\""
+image_repositories = ["TradingFunction=368961903808.dkr.ecr.eu-central-1.amazonaws.com/trading16f51c1a/tradingfunction0dfac496repo"]
+
+[default.global.parameters]
+region = "eu-central-1"
